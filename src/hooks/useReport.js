@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // useReport.js
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';

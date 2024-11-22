@@ -5,6 +5,304 @@ ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
 import ToolsPage from './ToolsPage';
 import '../css/Reportpagestyles.css';
+import { Loader2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { toast } from 'react-toastify';
+
+
+const PrintButton = () => {
+    const [isGenerating, setIsGenerating] = useState(false);
+  
+    const generatePDF = async () => {
+      try {
+        setIsGenerating(true);
+        
+        const loadingToast = toast.loading('Generating PDF...', {
+          position: "bottom-right",
+        });
+        
+        // Initialize PDF
+        const pdf = new jsPDF({
+          orientation: 'p',
+          unit: 'mm',
+          format: 'a4',
+          compress: true
+        });
+  
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margins = {
+          top: 25,
+          bottom: 25,
+          left: 20,
+          right: 20
+        };
+  
+        // Set base font
+        pdf.setFont('helvetica');
+        pdf.setFontSize(11);
+
+        const adjustFontSizes = (element) => {
+          // Define font sizes for different elements
+          if (element.tagName.startsWith('H')) {
+            switch(element.tagName) {
+              case 'H1':
+                element.style.fontSize = '32px'; // Increased from 24px
+                element.style.marginBottom = '2.5rem';
+                element.style.fontWeight = '700';
+                break;
+              case 'H2':
+                element.style.fontSize = '28px'; // Increased from 20px
+                element.style.marginBottom = '2rem';
+                element.style.fontWeight = '600';
+                break;
+              case 'H3':
+                element.style.fontSize = '24px'; // Increased from 18px
+                element.style.marginBottom = '1.5rem';
+                element.style.fontWeight = '600';
+                break;
+              default:
+                element.style.fontSize = '20px'; // Increased from 16px
+                element.style.marginBottom = '1.25rem';
+                element.style.fontWeight = '500';
+            }
+          } else if (element.tagName === 'P') {
+            element.style.fontSize = '16px'; // Increased from 12px
+          } else {
+            // For other elements like div, span, etc.
+            const computedStyle = window.getComputedStyle(element);
+            const currentSize = parseFloat(computedStyle.fontSize);
+            
+            // Only increase if the current size is too small
+            if (currentSize < 16) {
+              element.style.fontSize = '16px';
+            }
+          }
+
+          // Adjust line height based on font size
+          const fontSize = parseFloat(element.style.fontSize);
+          if (fontSize >= 28) {
+            element.style.lineHeight = '1.2';
+          } else if (fontSize >= 20) {
+            element.style.lineHeight = '1.3';
+          } else {
+            element.style.lineHeight = '1.5';
+          }
+        };
+  
+        const captureSection = async (section, isToolsSection = false) => {
+          if (!section) return null;
+          
+          const sectionClone = section.cloneNode(true);
+          document.body.appendChild(sectionClone);
+          
+          const elementsToAdjust = sectionClone.querySelectorAll('*');
+          const originalStyles = new Map();
+  
+          elementsToAdjust.forEach(element => {
+            originalStyles.set(element, {
+              fontSize: element.style.fontSize,
+              lineHeight: element.style.lineHeight,
+              marginBottom: element.style.marginBottom,
+              fontWeight: element.style.fontWeight,
+              letterSpacing: element.style.letterSpacing,
+              height: element.style.height,
+              maxHeight: element.style.maxHeight,
+              padding: element.style.padding
+            });
+
+            // Apply font size adjustments
+            adjustFontSizes(element);
+
+            // Additional styling
+            element.style.letterSpacing = '0.01em';
+            
+            // Remove height constraints for tools section
+            if (isToolsSection) {
+              element.style.height = 'auto';
+              element.style.maxHeight = 'none';
+            }
+          });
+
+          try {
+            // Special handling for tools section
+            if (isToolsSection) {
+              sectionClone.style.height = 'auto';
+              sectionClone.style.maxHeight = 'none';
+              sectionClone.style.overflow = 'visible';
+              
+              const toolsContent = sectionClone.querySelectorAll('.tools-content, .recommendation-card');
+              toolsContent.forEach(element => {
+                element.style.height = 'auto';
+                element.style.maxHeight = 'none';
+                element.style.overflow = 'visible';
+              });
+            }
+
+            const canvas = await html2canvas(sectionClone, {
+              scale: 3, // Increased scale for better quality
+              useCORS: true,
+              logging: false,
+              allowTaint: true,
+              backgroundColor: '#ffffff',
+              width: section.offsetWidth,
+              height: isToolsSection ? sectionClone.scrollHeight : section.offsetHeight,
+              onclone: (clonedDoc) => {
+                const clonedSection = clonedDoc.querySelector(`#${sectionClone.id}`);
+                if (clonedSection) {
+                  clonedSection.style.transform = 'none';
+                  clonedSection.style.width = '100%';
+                  clonedSection.style.margin = '0 auto';
+                  clonedSection.style.padding = `${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm`;
+                }
+              }
+            });
+
+            document.body.removeChild(sectionClone);
+            return canvas;
+
+          } catch (error) {
+            console.error('Error capturing section:', error);
+            document.body.removeChild(sectionClone);
+            return null;
+          }
+        };
+  
+        const sections = [
+          document.querySelector('.report-container'),
+          document.querySelector('.snapshot-section'),
+          ...Array.from(document.querySelectorAll('.recommendation-section')),
+          document.querySelector('.tools-page')
+        ].filter(Boolean);
+  
+        sections.forEach((section, index) => {
+          if (!section.id) section.id = `pdf-section-${index}`;
+        });
+  
+        let isFirstPage = true;
+        let currentY = margins.top;
+  
+        for (const [index, section] of sections.entries()) {
+          const isToolsSection = section.classList.contains('tools-page');
+          const canvas = await captureSection(section, isToolsSection);
+          if (!canvas) continue;
+  
+          const imgWidth = pageWidth - (margins.left + margins.right);
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  
+          if (isToolsSection || (!isFirstPage && currentY + imgHeight > pageHeight - margins.bottom)) {
+            pdf.addPage();
+            currentY = margins.top;
+          }
+  
+          pdf.addImage(
+            canvas.toDataURL('image/png', 1.0),
+            'PNG',
+            margins.left,
+            currentY,
+            imgWidth,
+            imgHeight,
+            undefined,
+            'FAST'
+          );
+  
+          currentY += imgHeight + (isToolsSection ? 10 : 15);
+          isFirstPage = false;
+  
+          if (currentY > pageHeight - margins.bottom && index < sections.length - 1) {
+            pdf.addPage();
+            currentY = margins.top;
+          }
+        }
+  
+        // Add page numbers with larger font
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(10); // Increased from 9
+          pdf.setTextColor(128, 128, 128);
+          pdf.text(
+            `Page ${i} of ${totalPages}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          );
+        }
+  
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        pdf.save(`SOC1_Assessment_Report_${timestamp}.pdf`);
+
+        toast.update(loadingToast, {
+          render: "PDF generated successfully!",
+          type: "success",
+          isLoading: false,
+          autoClose: 3000,
+        });
+  
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        toast.error('Error generating PDF. Please try again.', {
+          position: "bottom-right",
+        });
+      } finally {
+        setIsGenerating(false);
+      }
+    };
+  
+    return (
+      <button
+        onClick={generatePDF}
+        disabled={isGenerating}
+        style={{
+          position: 'fixed',
+          right: '2rem',
+          top: '6rem',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 1rem',
+          backgroundColor: '#EF4444',
+          color: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          transition: 'background-color 0.2s',
+          cursor: isGenerating ? 'not-allowed' : 'pointer',
+          opacity: isGenerating ? 0.5 : 1
+        }}
+      >
+        {isGenerating ? (
+          <span className="loading-spinner" style={{
+            width: '1.25rem',
+            height: '1.25rem',
+            border: '2px solid #fff',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            display: 'inline-block',
+            animation: 'spin 1s linear infinite'
+          }} />
+        ) : (
+          <svg 
+            width="20"
+            height="20"
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" 
+            />
+          </svg>
+        )}
+        {isGenerating ? 'Generating...' : 'Generate PDF'}
+      </button>
+    );
+  };
+  
 const riskColors = {
 high: {
 primary: '#ef4444',
@@ -369,26 +667,28 @@ targetScore: item.next_level_score
 [generation]
 );
 return (
-<div className="min-h-screen bg-white">
-<Header />
-<main>
-<Dashboard
-generation={generation}
-transformedData={transformedData}
-intro={intro}
-/>
-<SnapshotSection findings={findings} />
-{findings.length > 0 && findings.map((finding, index) => (
-<RecommendationSection
-key={index}
-title={finding.title}
-findings={finding.recommendations_for_improvement || []}
-index={index}
-/>
-))}
-<ToolsPage reportData={reportData} />
-</main>
-</div>
-);
+    <div className="min-h-screen bg-white">
+      <Header />
+      <PrintButton /> {/* Added Print Button here */}
+      <main>
+        <Dashboard
+          generation={generation}
+          transformedData={transformedData}
+          intro={intro}
+        />
+        <SnapshotSection findings={findings} />
+        {findings.length > 0 && findings.map((finding, index) => (
+          <RecommendationSection
+            key={index}
+            title={finding.title}
+            findings={finding.recommendations_for_improvement || []}
+            index={index}
+          />
+        ))}
+        <ToolsPage reportData={reportData} />
+      </main>
+    </div>
+  );
 };
+
 export default SOC1Assessment

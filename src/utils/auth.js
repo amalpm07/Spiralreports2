@@ -1,23 +1,22 @@
-// utils/auth.js
-import axios from 'axios';
-
-export const refreshAuthToken = async (userId, refreshToken) => {
+export const handleRefreshToken = async (refreshToken) => {
   try {
-    const response = await axios.post('https://app.spiralreports.com/api/auth/user/refresh', {
-      userId: userId,
-      refreshToken: refreshToken,
+    const response = await fetch('https://app.spiralreports.com/api/auth/user/refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
     });
 
-    if (response.data && response.data.accessToken && response.data.refreshToken) {
-      return {
-        accessToken: response.data.accessToken,
-        refreshToken: response.data.refreshToken,
-      };
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to refresh token');
     }
 
-    throw new Error("Failed to refresh token");
+    return data;
   } catch (error) {
-    console.error("Error refreshing token:", error);
-    throw error;  // Throw error to handle failure in App.js
+    console.error('Refresh token error:', error);
+    throw error;
   }
 };

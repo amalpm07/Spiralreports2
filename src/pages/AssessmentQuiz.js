@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import useSubmitAssessment from '../hooks/useSubmitAssessment';  // Custom hook for submitting the assessment
-import ReportGenerationModal from '../components/ReportGenerationModal';  // Modal component
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Grid, List } from 'lucide-react'; // Added Grid and List
+import useSubmitAssessment from '../hooks/useSubmitAssessment';
+import ReportGenerationModal from '../components/ReportGenerationModal';
 import Header from '../components/Header';
 
 // ProgressBar Component
@@ -20,8 +20,92 @@ const ProgressBar = ({ progress }) => (
     </div>
   </div>
 );
+const useViewPreference = () => {
+  // Get initial state from localStorage or default to true (grid view)
+  const [isGridView, setIsGridView] = useState(() => {
+    const saved = localStorage.getItem('viewPreference');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  // Save to localStorage whenever preference changes
+  useEffect(() => {
+    localStorage.setItem('viewPreference', JSON.stringify(isGridView));
+  }, [isGridView]);
+
+  return [isGridView, setIsGridView];
+};
+
+// Dynamic columns calculation based on container width
+const useColumnCount = () => {
+  const [columns, setColumns] = useState(2);
+
+  useEffect(() => {
+    const calculateColumns = () => {
+      const containerWidth = document.querySelector('.options-container')?.offsetWidth || 0;
+      if (containerWidth < 640) return 1; // Mobile
+      if (containerWidth < 1024) return 2; // Tablet
+      return Math.floor(containerWidth / 400); // Desktop: adjust based on optimal card width
+    };
+
+    const handleResize = () => {
+      setColumns(calculateColumns());
+    };
+
+    handleResize(); // Initial calculation
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return columns;
+};
+
+const ViewToggle = ({ isGridView, setIsGridView }) => (
+  <div className="flex items-center mb-6">
+    <p className="text-sm text-gray-500 mr-2">View answers as:</p>
+    <button
+      onClick={() => setIsGridView(true)}
+      className={`p-2 rounded-lg flex items-center gap-2 transition-colors duration-200 ${
+        isGridView ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+      }`}
+    >
+      <Grid size={18} />
+      <span className="text-sm font-medium">Grid</span>
+    </button>
+    <button
+      onClick={() => setIsGridView(false)}
+      className={`p-2 rounded-lg flex items-center gap-2 ml-2 transition-colors duration-200 ${
+        !isGridView ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+      }`}
+    >
+      <List size={18} />
+      <span className="text-sm font-medium">List</span>
+    </button>
+  </div>
+);
+
+const OptionsContainer = ({ isGridView, children }) => {
+  const columns = useColumnCount();
+  
+  return (
+    <div 
+      className={`options-container transition-all duration-300 ease-in-out ${
+        isGridView 
+          ? `grid gap-3 ${
+              columns === 1 ? 'grid-cols-1' :
+              columns === 2 ? 'grid-cols-2' :
+              'grid-cols-3'
+            }`
+          : 'flex flex-col gap-3'
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
+
 
 const AssessmentQuiz = () => {
+  const [isGridView, setIsGridView] = useViewPreference();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [tools, setTools] = useState([]);
@@ -170,8 +254,8 @@ const AssessmentQuiz = () => {
           {/* Sticky Progress and Question Section */}
           <div className="sticky top-0 bg-white z-10 px-4 pt-20">
             <div className="mb-8">
-              <ProgressBar progress={progress} /> {/* Here is the ProgressBar */}
-
+              <ProgressBar progress={progress} />
+  
               {!showToolsPage && currentQuestion && (
                 <>
                   <div className="text-xs font-semibold text-red-500 uppercase tracking-wider mb-2">
@@ -180,14 +264,46 @@ const AssessmentQuiz = () => {
                   <div className="text-lg font-semibold text-gray-900 mb-6 leading-relaxed">
                     {currentQuestion?.question}
                   </div>
+  
+                  {/* View Toggle Section */}
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center">
+                      <p className="text-sm text-gray-500 mr-2">View answers as:</p>
+                      <button
+                        onClick={() => setIsGridView(true)}
+                        className={`p-2 rounded-lg flex items-center gap-2 ${
+                          isGridView ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Grid size={18} />
+                        <span className="text-sm font-medium">Grid</span>
+                      </button>
+                      <button
+                        onClick={() => setIsGridView(false)}
+                        className={`p-2 rounded-lg flex items-center gap-2 ml-2 ${
+                          !isGridView ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <List size={18} />
+                        <span className="text-sm font-medium">List</span>
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {(selectedOptions[currentQuestionIndex] || []).length} selected
+                    </div>
+                  </div>
                 </>
               )}
             </div>
           </div>
-
+  
           <div className="mb-20">
             {!showToolsPage ? (
-              <div className="flex flex-col gap-3">
+              <div className={`${
+                isGridView 
+                  ? 'grid grid-cols-1 md:grid-cols-2 gap-3' 
+                  : 'flex flex-col gap-3'
+              }`}>
                 {getUniqueOptions(currentQuestion?.options || []).map((option, index) => (
                   <div
                     key={index}
@@ -211,8 +327,7 @@ const AssessmentQuiz = () => {
                 <p className="text-base text-gray-500 mb-8 leading-relaxed">
                   Please list all the tools that are currently being used in your organization for asset management and security.
                 </p>
-
-                {/* Tool Input with plus icon */}
+  
                 <div className="relative w-full mb-6">
                   <input
                     type="text"
@@ -232,8 +347,7 @@ const AssessmentQuiz = () => {
                     </button>
                   )}
                 </div>
-
-                {/* Display tools */}
+  
                 <div className="flex flex-wrap gap-4 min-h-8">
                   {tools.map((tool, index) => (
                     <span
@@ -253,11 +367,12 @@ const AssessmentQuiz = () => {
                 </div>
               </div>
             )}
-
-            {/* Error Message */}
-            {errorMessage && <div className="text-red-500 text-sm mb-4">{errorMessage}</div>}
+  
+            {errorMessage && (
+              <div className="text-red-500 text-sm mb-4">{errorMessage}</div>
+            )}
           </div>
-
+  
           {/* Sticky Navigation */}
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
             <div className="max-w-4xl mx-auto flex justify-between gap-4">
@@ -269,7 +384,7 @@ const AssessmentQuiz = () => {
               >
                 Previous
               </button>
-
+  
               {!showToolsPage ? (
                 <button
                   onClick={handleNextQuestion}
@@ -290,12 +405,16 @@ const AssessmentQuiz = () => {
             </div>
           </div>
         </div>
-
-        {/* ReportGenerationModal will automatically appear after successful submission */}
-        {isModalVisible && <ReportGenerationModal assessmentId={assessmentId} setIsVisible={setIsModalVisible} />}
+  
+        {/* Modal */}
+        {isModalVisible && (
+          <ReportGenerationModal 
+            assessmentId={assessmentId} 
+            setIsVisible={setIsModalVisible} 
+          />
+        )}
       </div>
     </div>
   );
 };
-
 export default AssessmentQuiz;

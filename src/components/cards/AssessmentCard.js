@@ -161,7 +161,7 @@ function AssessmentCard({
               bg-red-50 hover:bg-red-100 text-red-600 font-medium transition-colors
               focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
           >
-            Begin Assessment
+           Begin Assessment
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>

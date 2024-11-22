@@ -125,9 +125,7 @@ const DraftAssessmentsPage = () => {
         console.log('Continuing draft:', draftId);
     };
 
-    const handleBack = () => {
-        console.log('Navigate back');
-    };
+  
 
     // Filter drafts based on search term and selected framework
     const filteredDrafts = draftAssessments.filter(draft => {

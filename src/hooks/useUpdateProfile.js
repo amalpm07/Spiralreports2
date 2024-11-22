@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import axios from 'axios';  // You can use any HTTP client like axios
+import { useAuth } from './AuthContext'; // To get access token
 
 const useUpdateProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { authData } = useAuth(); // Get the access token from the AuthContext
 
-  const updateProfile = async (formData, token) => {
+  const access_token = authData?.access_token || authData?.accessToken;
+
+  const updateProfile = async (formData) => {
     setIsLoading(true);
     setError(null);  // Reset any previous errors
 
@@ -26,7 +30,7 @@ const useUpdateProfile = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${access_token}`,
           },
         }
       );

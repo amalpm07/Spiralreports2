@@ -21,9 +21,11 @@ import AllInvoicePage from './pages/AllInvoicePage';
 import SOC1Report from './pages/ReportPage'
 import { UserProvider } from './context/UserContext';
 import { isTokenExpired } from './utils/jwtUtils';  // Token check utility
-import { refreshAuthToken } from './utils/auth';  // Function to call API and refresh token
+import { handleRefreshToken } from './utils/auth';  // Function to call API and refresh token
 import DraftAssessmentsPage from './pages/DraftAssessment';
 import ReferralPage from './pages/ReferralPage';
+import OAuthReturn from './types/OAuthReturn';
+import GoogleCallback from './components/GoogleCallback';
 
 function App() {
   return (
@@ -49,7 +51,8 @@ function App() {
           <Route path="/report" element={<SOC1Report />} />
           <Route path='/drafts' element={<DraftAssessmentsPage/>}/>
           <Route path='/referral' element={<ReferralPage/>}/>
-        </Routes>
+          <Route path="/api/auth/oauth/google" element={<GoogleCallback />} />      
+            </Routes>
         <ToastNotifications />
         <ToastContainer />
       </UserProvider>
@@ -75,7 +78,7 @@ function AuthRedirect() {
           if (refreshToken && userId) {
             try {
               // Attempt to refresh the token using the refresh token and userId
-              const newTokens = await refreshAuthToken(userId, refreshToken);
+              const newTokens = await handleRefreshToken(userId, refreshToken);
 
               // Save new tokens in your context or localStorage
               setAuthData({
