@@ -7,7 +7,6 @@ import { Separator } from '../ui/Separator';
 import { FaGoogle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/AuthContext';
-
 // Work roles array (same as before)
 const workRoles = [
   { value: '', label: 'Select your work role' },
@@ -37,6 +36,7 @@ const CreateAccountForm = () => {
   const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
+  
   const [formData, setFormData] = useState({
     firstName: '',
     middleName: '',
@@ -60,7 +60,9 @@ const CreateAccountForm = () => {
   const handleEmailChange = (event) => {
     setEmail(event.target.value);
   };
-
+  const handleSignInClick = () => {
+    navigate('/login');
+  };
   const validatePhoneNumber = (phoneNumber) => {
     return phoneNumber && phoneNumber.length >= 10; // Basic validation
   };
@@ -145,7 +147,10 @@ const CreateAccountForm = () => {
         {step === 1 && (
           <div className="grid gap-2">
             <Input id="email" placeholder="Email" value={email} onChange={handleEmailChange} />
+            
           </div>
+          
+          
         )}
         {step === 2 && (
           <div className="grid gap-2">

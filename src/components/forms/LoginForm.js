@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const LoginForm = ({ onSubmit, formData, onInputChange, errorMessage: parentErrorMessage }) => {
+  const navigate = useNavigate();
   const [touched, setTouched] = useState({
     username: false,
     password: false
@@ -52,7 +54,9 @@ const LoginForm = ({ onSubmit, formData, onInputChange, errorMessage: parentErro
   const handleForgotPassword = () => {
     setIsModalOpen(true);
   };
-
+  const handleSignUpClick = () => {
+    navigate('/signup');
+  };
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
@@ -92,12 +96,12 @@ const LoginForm = ({ onSubmit, formData, onInputChange, errorMessage: parentErro
 
   return (
     <div className="w-full max-w-md space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Welcome back</h1>
-        <p className="text-sm text-gray-600">Please enter your details to sign in</p>
-      </div>
+    <div className="text-center space-y-2">
+      <h1 className="text-2xl font-bold tracking-tight text-gray-900">Welcome back</h1>
+      <p className="text-sm text-gray-600">Please enter your details to sign in</p>
+    </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="username">
@@ -238,6 +242,17 @@ const LoginForm = ({ onSubmit, formData, onInputChange, errorMessage: parentErro
           )}
           {isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}
         </button>
+
+        <p className="text-center text-sm text-gray-600">
+          Don't have an account?{' '}
+          <button
+            type="button"
+            onClick={handleSignUpClick}
+            className="text-red-500 hover:text-red-600 font-medium"
+          >
+            Sign up
+          </button>
+        </p>
       </form>
     </div>
   );

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "../components/ui/Button";
 import LoginForm from "../components/forms/LoginForm";
 import CreateAccountForm from "../components/forms/CreateAccountForm";
 import { useNavigate, Link, useLocation } from "react-router-dom"; 
@@ -8,8 +7,9 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import OTPPopup from "../components/cards/OtpPopup"; 
 import { useAuth } from '../hooks/AuthContext'; 
-import useUserProfile from "../hooks/useUserProfile"; // Import the custom hook
+import useUserProfile from "../hooks/useUserProfile";
 import PageLoader from "../components/ui/PageLoader";
+
 function AuthPage() {
   const { setAuthData } = useAuth(); 
   const [formData, setFormData] = useState({ username: "", password: "" });
@@ -17,13 +17,9 @@ function AuthPage() {
   const [isOtpOpen, setIsOtpOpen] = useState(false);
   const [userId, setUserId] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();  // Used to determine current URL
-
-  // Check current URL path to determine which form to show
-  const isLoginPage = location.pathname === "/login"; // true if we're on the login page
-
-  // Fetch user profile after OTP verification
-  const { userData, loading, error } = useUserProfile(); // Now using the custom hook
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
+  const { userData, loading, error } = useUserProfile();
 
   const handleInputChange = (event) => {
     const { id, value } = event.target;
@@ -49,8 +45,6 @@ function AuthPage() {
       }
 
       const data = await response.json();
-      console.log(data);
-
       setUserId(data.data._id);
       setAuthData(data.data);
       localStorage.setItem('authData', JSON.stringify(data.data));
@@ -64,7 +58,7 @@ function AuthPage() {
   };
 
   const handleOtpSubmit = async (otp) => {
-    setIsOtpOpen(false); // Close the OTP popup immediately after submission
+    setIsOtpOpen(false);
     try {
       const response = await fetch("https://app.spiralreports.com/api/auth/verify-otp-login", {
         method: "POST",
@@ -85,8 +79,6 @@ function AuthPage() {
       }
 
       const data = await response.json();
-      console.log("OTP Response Data:", data);
-
       const { access_token, refresh_token, user } = data.data;
       setAuthData({
         ...user, 
@@ -102,7 +94,6 @@ function AuthPage() {
 
       toast.success("OTP verification successful!", { position: "bottom-right" });
 
-      // Delay navigation to ensure OTP verification success
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
@@ -112,30 +103,13 @@ function AuthPage() {
     }
   };
 
-  // Toggle between login and signup
-  const toggleForm = () => {
-    if (isLoginPage) {
-      navigate("/signup"); // Navigate to signup if we're on login
-    } else {
-      navigate("/login"); // Navigate to login if we're on signup
-    }
-  };
-
-  // Handle case when user profile data is loaded
-  useEffect(() => {
-    if (userData) {
-      // Handle user data if needed after OTP verification or login
-    }
-  }, [userData]);
-
   useEffect(() => {
     if (error) {
       toast.error(`Error: ${error}`, { position: "bottom-right" });
     }
   }, [error]);
 
-  // Show loading state while fetching user profile
-  if (loading ) {
+  if (loading) {
     return <PageLoader />;
   }
 
@@ -154,7 +128,6 @@ function AuthPage() {
       
       <div className="flex items-center justify-center p-20 mt-8">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          {/* Render the LoginForm or CreateAccountForm based on current route */}
           {isLoginPage ? (
             <LoginForm 
               formData={formData}
@@ -163,34 +136,23 @@ function AuthPage() {
               errorMessage={errorMessage}
             />
           ) : (
-            <CreateAccountForm /> // Show the Create Account form if on signup page
+            <CreateAccountForm />
           )}
 
           <p className="px-8 text-center text-sm text-muted-foreground">
             By clicking continue, you agree to our{" "}
-            <a href="/terms" className="underline">Terms of Service</a> and{" "}
-            <a href="/privacy" className="underline">Privacy Policy</a>.
+            <Link to="/terms" className="underline">Terms of Service</Link> and{" "}
+            <Link to="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         </div>
       </div>
-      
-      <Button
-        variant="ghost"
-        className="absolute right-4 top-4"
-        style={{ backgroundColor: '#EF4444', color: 'white', border: 'none' }}
-        onClick={toggleForm} // This button will toggle between Login and Signup
-      >
-        {isLoginPage ? "Create Account" : " Login"} {/* Button text based on current URL */}
-      </Button>
 
-      {/* OTP Popup */}
       <OTPPopup 
         isOpen={isOtpOpen} 
         onClose={() => setIsOtpOpen(false)} 
         onSubmit={handleOtpSubmit} 
       />
 
-      {/* Toast Container for notifications */}
       <ToastContainer />
     </div>
   );
