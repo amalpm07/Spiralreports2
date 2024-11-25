@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import {  useLocation } from 'react-router-dom';
 import { Plus, Check, Grid, List } from 'lucide-react'; // Added Grid and List
 import useSubmitAssessment from '../hooks/useSubmitAssessment';
 import ReportGenerationModal from '../components/ReportGenerationModal';
@@ -59,6 +59,7 @@ const useColumnCount = () => {
   return columns;
 };
 
+// eslint-disable-next-line no-unused-vars
 const ViewToggle = ({ isGridView, setIsGridView }) => (
   <div className="flex items-center mb-6">
     <p className="text-sm text-gray-500 mr-2">View answers as:</p>
@@ -83,6 +84,7 @@ const ViewToggle = ({ isGridView, setIsGridView }) => (
   </div>
 );
 
+// eslint-disable-next-line no-unused-vars
 const OptionsContainer = ({ isGridView, children }) => {
   const columns = useColumnCount();
   
@@ -115,7 +117,6 @@ const AssessmentQuiz = () => {
   const [isModalVisible, setIsModalVisible] = useState(false); // State to control modal visibility
   const [assessmentId, setAssessmentId] = useState(null); // State to store assessment id
 
-  const navigate = useNavigate();
   const location = useLocation();
   const { assessment, accessToken } = location.state || {};  // Ensure accessToken is passed in location state
 

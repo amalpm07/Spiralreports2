@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { memo, useState, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, PieChart, Pie, Cell, Tooltip, 
@@ -5,7 +6,6 @@ ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
 import ToolsPage from './ToolsPage';
 import '../css/Reportpagestyles.css';
-import { Loader2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'react-toastify';

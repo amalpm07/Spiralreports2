@@ -1,16 +1,7 @@
-// src/components/LoginForm.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import ForgotPasswordModal from '../ForgotPasswordModal';
 
-const LoginForm = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    username: '',
-    password: ''
-  });
-  
+const LoginForm = ({ onSubmit, formData, onInputChange, errorMessage: parentErrorMessage }) => {
   const [touched, setTouched] = useState({
     username: false,
     password: false
@@ -18,7 +9,7 @@ const LoginForm = () => {
   
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [localErrorMessage, setLocalErrorMessage] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -46,14 +37,6 @@ const LoginForm = () => {
   const validation = validateForm();
   const buttonEnabled = validation.username.isValid && validation.password.isValid;
   
-  const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [id]: value
-    }));
-  };
-  
   const handleBlur = (e) => {
     const { id } = e.target;
     setTouched(prev => ({
@@ -77,12 +60,11 @@ const LoginForm = () => {
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleLoading(true);
-      setErrorMessage('');
-      
+      setLocalErrorMessage('');
       window.location.href = 'https://app.spiralreports.com/api/auth/user/login/google';
     } catch (error) {
       console.error('Google sign-in error:', error);
-      setErrorMessage('Failed to initialize Google sign-in. Please try again.');
+      setLocalErrorMessage('Failed to initialize Google sign-in. Please try again.');
     } finally {
       setIsGoogleLoading(false);
     }
@@ -91,26 +73,22 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!buttonEnabled) return;
+    if (!buttonEnabled || isSubmitting) return;
     
     setIsSubmitting(true);
-    setErrorMessage('');
+    setLocalErrorMessage('');
     
     try {
-      // Add your login API call here
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Form submitted:', formData);
-      
-      // Reset form after successful submission
-      setFormData({ username: '', password: '' });
-      setTouched({ username: false, password: false });
-      navigate('/dashboard');
+      await onSubmit(e);
     } catch (error) {
-      setErrorMessage('An error occurred during sign in. Please try again.');
+      setLocalErrorMessage(error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Display either parent error message or local error message
+  const displayErrorMessage = parentErrorMessage || localErrorMessage;
 
   return (
     <div className="w-full max-w-md space-y-6">
@@ -132,7 +110,7 @@ const LoginForm = () => {
                 type="email"
                 placeholder="name@example.com"
                 value={formData.username}
-                onChange={handleInputChange}
+                onChange={onInputChange}
                 onBlur={handleBlur}
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg transition-all duration-200
                   ${(touched.username && !validation.username.isValid) ? 'border-red-500' : 'border-gray-300'}
@@ -155,7 +133,7 @@ const LoginForm = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={handleInputChange}
+                onChange={onInputChange}
                 onBlur={handleBlur}
                 className={`w-full pl-10 pr-10 py-2 border rounded-lg transition-all duration-200
                   ${(touched.password && !validation.password.isValid) ? 'border-red-500' : 'border-gray-300'}
@@ -199,16 +177,16 @@ const LoginForm = () => {
           </button>
         </div>
 
-        {errorMessage && (
+        {displayErrorMessage && (
           <div className="text-sm text-red-500 text-center bg-red-50 p-2 rounded-md">
-            {errorMessage}
+            {displayErrorMessage}
           </div>
         )}
 
         <button
           type="submit"
           className={`w-full py-2.5 bg-red-500 text-white rounded-lg transition-all duration-300
-            ${buttonEnabled ? 'hover:bg-red-600' : 'opacity-50 cursor-not-allowed'}`}
+            ${buttonEnabled && !isSubmitting ? 'hover:bg-red-600' : 'opacity-50 cursor-not-allowed'}`}
           disabled={!buttonEnabled || isSubmitting}
         >
           {isSubmitting ? (
@@ -260,20 +238,7 @@ const LoginForm = () => {
           )}
           {isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}
         </button>
-
-        <p className="text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <button
-            type="button"
-            onClick={() => setErrorMessage('Sign up feature coming soon!')}
-            className="text-red-500 hover:text-red-600 font-medium"
-          >
-            Sign up
-          </button>
-        </p>
       </form>
-
-      <ForgotPasswordModal isOpen={isModalOpen} onClose={handleCloseModal} />
     </div>
   );
 };
